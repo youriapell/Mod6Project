@@ -1,11 +1,18 @@
 package org.tensorflow.lite.examples.poseestimation.ml
 
 import android.graphics.PointF
+import android.media.MediaPlayer
+import android.view.SurfaceView
+import org.tensorflow.lite.examples.poseestimation.R
 import org.tensorflow.lite.examples.poseestimation.data.Person
 import org.tensorflow.lite.examples.poseestimation.data.BodyPart
 import kotlin.math.atan2
 
-class PushUpDetector {
+class PushUpDetector(
+    private val surfaceView: SurfaceView) {
+    private var rightElbowCounter: Int = 0
+    private var rightSideBodyCounter: Int = 0
+    private val ERROR_MARGIN: Int = 20
     fun isCorrectPushUp(person: Person): Boolean {
         val keypoints = person.keyPoints
         val leftShoulder = keypoints.firstOrNull { it.bodyPart == BodyPart.LEFT_SHOULDER }
@@ -29,25 +36,74 @@ class PushUpDetector {
             return false
         }
 
-        val rightElbowAngle = elbowAngle(rightShoulder.coordinate, rightElbow.coordinate, rightWrist.coordinate)
-        val leftElbowAngle = elbowAngle(leftShoulder.coordinate, leftElbow.coordinate, leftWrist.coordinate)
+        val rightElbowAngle = rightElbowAngle(rightShoulder.coordinate, rightElbow.coordinate, rightWrist.coordinate)
+       // val leftElbowAngle = elbowAngle(leftShoulder.coordinate, leftElbow.coordinate, leftWrist.coordinate)
 
-        val rightSideBodyAngle = straightBack(rightShoulder.coordinate, rightElbow.coordinate, rightWrist.coordinate)
-        val leftSideBodyAngle = straightBack(leftShoulder.coordinate, leftElbow.coordinate, leftWrist.coordinate)
+        val rightSideBodyAngle = straightBackRight(rightShoulder.coordinate, rightHip.coordinate, rightKnee.coordinate)
+        //val leftSideBodyAngle = straightBack(leftShoulder.coordinate, leftElbow.coordinate, leftWrist.coordinate)
 
-        return rightElbowAngle && leftElbowAngle && rightSideBodyAngle && rightSideBodyAngle
+        return  rightElbowAngle && rightSideBodyAngle
     }
 
-    private fun elbowAngle(shoulder: PointF, elbow: PointF, wrist: PointF) : Boolean {
+    private fun rightElbowAngle(shoulder: PointF, elbow: PointF, wrist: PointF) : Boolean {
         val elbowAngle = calculateAngle(shoulder, elbow, wrist)
 
-        return elbowAngle in PUSH_UP_ELBOW_ANGLE_RANGE
+        //println("Elbow angle: $elbowAngle")
+        println("Right elbow counter: $rightElbowCounter")
+
+        var angleInRange = elbowAngle in PUSH_UP_ELBOW_ANGLE_RANGE
+        if(angleInRange){
+            rightElbowCounter = 0
+        }else {
+            rightElbowCounter++
+            if (rightElbowCounter > ERROR_MARGIN){
+                rightElbowCounter = 0
+                println("Your elbows are wrong!!!")
+                try {
+                    var mp = MediaPlayer.create(surfaceView.context, R.raw.elbows)
+                    mp.start()
+
+                    mp.setOnCompletionListener { player ->
+                        player.release()
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+                return false
+            }
+        }
+
+        return true
     }
 
-    private fun straightBack(shoulder: PointF, hip: PointF, knee: PointF) : Boolean {
+    private fun straightBackRight(shoulder: PointF, hip: PointF, knee: PointF) : Boolean {
         val bodyAngle = calculateAngle(shoulder, hip, knee)
 
-        return bodyAngle in (0.0..10.0) || bodyAngle in (170.0..180.0)
+      // println("Body angle: $bodyAngle")
+      println("Right body counter: $rightSideBodyCounter")
+
+        var angleInRange = bodyAngle in (0.0..20.0) || bodyAngle in (160.0..180.0)
+        if(angleInRange){
+            rightSideBodyCounter = 0
+        }else {
+            rightSideBodyCounter++
+            if (rightSideBodyCounter > ERROR_MARGIN){
+                rightSideBodyCounter = 0
+                println("Straighten your back!!!")
+                try {
+                    var mp = MediaPlayer.create(surfaceView.context, R.raw.back)
+                    mp.start()
+
+                    mp.setOnCompletionListener { player ->
+                        player.release()
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+                return false
+            }
+        }
+        return true
     }
 
     private fun calculateAngle(firstPoint: PointF, midPoint: PointF, lastPoint: PointF): Double {
