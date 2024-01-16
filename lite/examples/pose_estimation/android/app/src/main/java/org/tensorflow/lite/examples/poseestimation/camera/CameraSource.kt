@@ -21,28 +21,37 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.ImageFormat
 import android.graphics.Matrix
+import android.graphics.Point
+import android.graphics.PointF
 import android.graphics.Rect
 import android.hardware.camera2.CameraCaptureSession
 import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraDevice
 import android.hardware.camera2.CameraManager
 import android.media.ImageReader
+import android.media.MediaPlayer
 import android.os.Handler
 import android.os.HandlerThread
 import android.util.Log
 import android.view.Surface
 import android.view.SurfaceView
 import kotlinx.coroutines.suspendCancellableCoroutine
+import org.tensorflow.lite.examples.poseestimation.R
 import org.tensorflow.lite.examples.poseestimation.VisualizationUtils
 import org.tensorflow.lite.examples.poseestimation.YuvToRgbConverter
+import org.tensorflow.lite.examples.poseestimation.data.BodyPart
+import org.tensorflow.lite.examples.poseestimation.data.KeyPoint
 import org.tensorflow.lite.examples.poseestimation.data.Person
 import org.tensorflow.lite.examples.poseestimation.ml.MoveNetMultiPose
 import org.tensorflow.lite.examples.poseestimation.ml.PoseClassifier
 import org.tensorflow.lite.examples.poseestimation.ml.PoseDetector
+import org.tensorflow.lite.examples.poseestimation.ml.PushUpDetector
 import org.tensorflow.lite.examples.poseestimation.ml.TrackerType
 import java.util.*
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
+import kotlin.math.atan2
+import kotlin.math.roundToInt
 
 class CameraSource(
     private val surfaceView: SurfaceView,
@@ -91,6 +100,8 @@ class CameraSource(
     /** [Handler] corresponding to [imageReaderThread] */
     private var imageReaderHandler: Handler? = null
     private var cameraId: String = ""
+
+    private var pushUp = false
 
     suspend fun initCamera() {
         camera = openCamera(cameraManager, cameraId)
@@ -269,7 +280,56 @@ class CameraSource(
         visualize(persons, bitmap)
     }
 
+    private fun calculateAngle(point1: PointF, point2: PointF, point3: PointF): Float {
+        val angle1 = atan2(point1.y - point2.y, point1.x - point2.x)
+        val angle2 = atan2(point3.y - point2.y, point3.x - point2.x)
+
+        // Calculate the angle between the two vectors formed by the points
+        var angle = Math.toDegrees((angle2 - angle1).toDouble()).toFloat()
+
+        // Ensure the angle is in the range [0, 360)
+        if (angle < 0) {
+            angle += 360f
+        }
+
+        return angle
+    }
+
+    private fun calculateSlope(point1: PointF, point2: PointF): Float {
+        val angle1 = (point1.y-point2.y)/(point1.x-point2.x)
+
+        // Calculate the angle between the two vectors formed by the points
+        var angle = Math.toDegrees(angle1.toDouble()).toFloat()
+
+        // Ensure the angle is in the range [0, 360)
+        if (angle < 0) {
+            angle += 360f
+        }
+
+        return angle
+    }
     private fun visualize(persons: List<Person>, bitmap: Bitmap) {
+        var person = persons[0]
+        var pushUpDetector = PushUpDetector()
+
+
+        val isCorrectPushup = pushUpDetector.isCorrectPushUp(person)
+        try {
+            //if (isCorrectPushup && pushUp == false) {
+                pushUp = true
+                var mp = MediaPlayer.create(surfaceView.context, R.raw.ping)
+                mp.start()
+
+                mp.setOnCompletionListener { player ->
+                    player.release()
+                }
+           // }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        println(isCorrectPushup)
+
+
 
         val outputBitmap = VisualizationUtils.drawBodyKeypoints(
             bitmap,

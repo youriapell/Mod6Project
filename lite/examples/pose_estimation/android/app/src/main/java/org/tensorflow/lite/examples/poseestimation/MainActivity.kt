@@ -52,7 +52,7 @@ class MainActivity : AppCompatActivity() {
      * 2 == MoveNet MultiPose model
      * 3 == PoseNet model
      **/
-    private var modelPos = 1
+    private var modelPos = 0
 
     /** Default device is CPU */
     private var device = Device.CPU
