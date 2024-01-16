@@ -315,15 +315,23 @@ class CameraSource(
 
         val isCorrectPushup = pushUpDetector.isCorrectPushUp(person)
         try {
-            //if (isCorrectPushup && pushUp == false) {
+            if (isCorrectPushup && pushUp == false) {
                 pushUp = true
+                var mp = MediaPlayer.create(surfaceView.context, R.raw.great)
+                mp.start()
+
+                mp.setOnCompletionListener { player ->
+                    player.release()
+                }
+           }else if (!isCorrectPushup && pushUp == true){
+                pushUp = false
                 var mp = MediaPlayer.create(surfaceView.context, R.raw.ping)
                 mp.start()
 
                 mp.setOnCompletionListener { player ->
                     player.release()
                 }
-           // }
+           }
         } catch (e: Exception) {
             e.printStackTrace()
         }
