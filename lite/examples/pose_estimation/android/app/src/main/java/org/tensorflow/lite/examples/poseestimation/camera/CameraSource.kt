@@ -102,6 +102,7 @@ class CameraSource(
     private var cameraId: String = ""
 
     private var pushUp = false
+    var pushUpDetector = PushUpDetector(surfaceView)
 
     suspend fun initCamera() {
         camera = openCamera(cameraManager, cameraId)
@@ -310,32 +311,31 @@ class CameraSource(
     }
     private fun visualize(persons: List<Person>, bitmap: Bitmap) {
         var person = persons[0]
-        var pushUpDetector = PushUpDetector()
 
 
         val isCorrectPushup = pushUpDetector.isCorrectPushUp(person)
-        try {
-            if (isCorrectPushup && pushUp == false) {
-                pushUp = true
-                var mp = MediaPlayer.create(surfaceView.context, R.raw.great)
-                mp.start()
-
-                mp.setOnCompletionListener { player ->
-                    player.release()
-                }
-           }else if (!isCorrectPushup && pushUp == true){
-                pushUp = false
-                var mp = MediaPlayer.create(surfaceView.context, R.raw.ping)
-                mp.start()
-
-                mp.setOnCompletionListener { player ->
-                    player.release()
-                }
-           }
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-        println(isCorrectPushup)
+//        try {
+//            if (isCorrectPushup && pushUp == false) {
+//                pushUp = true
+//                var mp = MediaPlayer.create(surfaceView.context, R.raw.great)
+//                mp.start()
+//
+//                mp.setOnCompletionListener { player ->
+//                    player.release()
+//                }
+//           }else if (!isCorrectPushup && pushUp == true){
+//                pushUp = false
+//                var mp = MediaPlayer.create(surfaceView.context, R.raw.ping)
+//                mp.start()
+//
+//                mp.setOnCompletionListener { player ->
+//                    player.release()
+//                }
+//           }
+//        } catch (e: Exception) {
+//            e.printStackTrace()
+//        }
+        //println(isCorrectPushup)
 
 
 
