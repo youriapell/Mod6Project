@@ -12,7 +12,7 @@ class PushUpDetector(
     private val surfaceView: SurfaceView) {
     private var rightElbowCounter: Int = 0
     private var rightSideBodyCounter: Int = 0
-    private val ERROR_MARGIN: Int = 20
+    private val ERROR_MARGIN: Int = 50
     fun isCorrectPushUp(person: Person): Boolean {
         val keypoints = person.keyPoints
         val leftShoulder = keypoints.firstOrNull { it.bodyPart == BodyPart.LEFT_SHOULDER }
@@ -25,42 +25,42 @@ class PushUpDetector(
         val leftHip = keypoints.firstOrNull { it.bodyPart == BodyPart.LEFT_HIP }
         val rightKnee = keypoints.firstOrNull { it.bodyPart == BodyPart.RIGHT_KNEE }
         val leftKnee = keypoints.firstOrNull { it.bodyPart == BodyPart.LEFT_KNEE }
-
+        val rightEar = keypoints.firstOrNull { it.bodyPart == BodyPart.RIGHT_EAR }
+        val rightAnkle = keypoints.firstOrNull { it.bodyPart == BodyPart.RIGHT_ANKLE }
 
         if (leftShoulder == null || rightShoulder == null ||
             leftElbow == null || rightElbow == null ||
             leftWrist == null || rightWrist == null ||
             leftHip == null || rightHip == null ||
-            leftKnee == null || rightKnee == null
+            leftKnee == null || rightKnee == null ||
+            rightEar == null || rightAnkle == null
         ) {
             return false
         }
 
-        val rightElbowAngle = rightElbowAngle(rightShoulder.coordinate, rightElbow.coordinate, rightWrist.coordinate)
-       // val leftElbowAngle = elbowAngle(leftShoulder.coordinate, leftElbow.coordinate, leftWrist.coordinate)
+        val rightElbowAngle = straightHead(rightEar.coordinate, rightShoulder.coordinate, rightHip.coordinate)
 
-        val rightSideBodyAngle = straightBackRight(rightShoulder.coordinate, rightHip.coordinate, rightKnee.coordinate)
-        //val leftSideBodyAngle = straightBack(leftShoulder.coordinate, leftElbow.coordinate, leftWrist.coordinate)
+        val rightSideBodyAngle = straightBackRight(rightShoulder.coordinate, rightHip.coordinate, rightAnkle.coordinate)
 
         return  rightElbowAngle && rightSideBodyAngle
     }
 
-    private fun rightElbowAngle(shoulder: PointF, elbow: PointF, wrist: PointF) : Boolean {
-        val elbowAngle = calculateAngle(shoulder, elbow, wrist)
+    private fun straightHead(ear: PointF, shoulder: PointF, hip: PointF) : Boolean {
+        val bodyAngle = calculateAngle(ear, shoulder, hip)
 
-        //println("Elbow angle: $elbowAngle")
-        println("Right elbow counter: $rightElbowCounter")
+        // println("Body angle: $bodyAngle")
+        println("Right body counter: $rightElbowCounter")
 
-        var angleInRange = elbowAngle in PUSH_UP_ELBOW_ANGLE_RANGE
+        var angleInRange = bodyAngle in (0.0..20.0) || bodyAngle in (160.0..180.0)
         if(angleInRange){
             rightElbowCounter = 0
         }else {
-            rightElbowCounter++
-            if (rightElbowCounter > ERROR_MARGIN){
-                rightElbowCounter = 0
-                println("Your elbows are wrong!!!")
+            rightElbowCounter ++
+            if (rightElbowCounter  > ERROR_MARGIN){
+                rightElbowCounter  = 0
+                println("Straighten your Neck!!!")
                 try {
-                    var mp = MediaPlayer.create(surfaceView.context, R.raw.elbows)
+                    var mp = MediaPlayer.create(surfaceView.context, R.raw.neck)
                     mp.start()
 
                     mp.setOnCompletionListener { player ->
@@ -72,17 +72,16 @@ class PushUpDetector(
                 return false
             }
         }
-
         return true
     }
 
-    private fun straightBackRight(shoulder: PointF, hip: PointF, knee: PointF) : Boolean {
-        val bodyAngle = calculateAngle(shoulder, hip, knee)
+    private fun straightBackRight(shoulder: PointF, hip: PointF, ankle: PointF) : Boolean {
+        val bodyAngle = calculateAngle(shoulder, hip, ankle)
 
       // println("Body angle: $bodyAngle")
       println("Right body counter: $rightSideBodyCounter")
 
-        var angleInRange = bodyAngle in (0.0..20.0) || bodyAngle in (160.0..180.0)
+        var angleInRange = bodyAngle in (0.0..10.0) || bodyAngle in (170.0..180.0)
         if(angleInRange){
             rightSideBodyCounter = 0
         }else {
@@ -104,6 +103,12 @@ class PushUpDetector(
             }
         }
         return true
+    }
+
+    private fun calculateAngle(firstPoint: PointF, lastPoint: PointF): Double {
+        val deltaY = (lastPoint.y -lastPoint.y)
+        val deltaX = (firstPoint.x - firstPoint.x)
+        return Math.toDegrees(atan2(deltaY.toDouble(), deltaX.toDouble()).mod(180.0))
     }
 
     private fun calculateAngle(firstPoint: PointF, midPoint: PointF, lastPoint: PointF): Double {
